@@ -112,7 +112,7 @@ public class ScriptBuildStep extends Builder {
 		listener.getLogger().println("executing script '" + buildStepId + "'");
 		File tempFile = null;
 		try {
-			FilePath workingDir = build.getModuleRoot();
+			FilePath workingDir = build.getWorkspace();
 			EnvVars env = build.getEnvironment(listener);
 			Launcher lastBuiltLauncher = getLastBuiltLauncher(build, launcher, listener);
 			String data = buildStepConfig.content;
