@@ -83,17 +83,6 @@ public class ScriptBuildStep extends Builder {
 		return buildStepArgs;
 	}
 
-	private Launcher getLastBuiltLauncher(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-		AbstractProject<?, ?> project = build.getProject();
-		Node lastBuiltOn = project.getLastBuiltOn();
-		Launcher lastBuiltLauncher = launcher;
-		if (lastBuiltOn != null) {
-			lastBuiltLauncher = lastBuiltOn.createLauncher(listener);
-		}
-
-		return lastBuiltLauncher;
-	}
-
 	/**
 	 * Perform the build step on the execution host.
 	 * <p>
@@ -114,7 +103,6 @@ public class ScriptBuildStep extends Builder {
 		try {
 			FilePath workingDir = build.getWorkspace();
 			EnvVars env = build.getEnvironment(listener);
-			Launcher lastBuiltLauncher = getLastBuiltLauncher(build, launcher, listener);
 			String data = buildStepConfig.content;
 
 			/*
@@ -160,7 +148,7 @@ public class ScriptBuildStep extends Builder {
 			 * Execute command remotely
 			 */
 			listener.getLogger().println("Executing temp file '" + dest.getRemote() + "'");
-			int r = lastBuiltLauncher.launch().cmds(args).envs(env).stderr(listener.getLogger()).stdout(listener.getLogger()).pwd(workingDir).join();
+			int r = launcher.launch().cmds(args).envs(env).stderr(listener.getLogger()).stdout(listener.getLogger()).pwd(workingDir).join();
 			returnValue = (r == 0);
 
 		} catch (IOException e) {
