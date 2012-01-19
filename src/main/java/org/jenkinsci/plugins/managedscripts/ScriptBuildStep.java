@@ -163,7 +163,7 @@ public class ScriptBuildStep extends Builder {
 			FilePath source = new FilePath(tempFile);
 			FilePath dest = new FilePath(Computer.currentComputer().getChannel(), workingDir + "/" + tempFile.getName());
 
-			log.log(Level.FINE, "Copying temporary file to " + Computer.currentComputer().getHostName() + ":" + workingDir + "/" + tempFile.getName());
+			log.log(Level.FINE, "Copying temporary file to " + Computer.currentComputer().getDisplayName() + ":" + workingDir + "/" + tempFile.getName());
 			source.copyTo(dest);
 
 			/*
