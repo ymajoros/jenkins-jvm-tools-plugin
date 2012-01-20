@@ -125,6 +125,12 @@ public class ScriptBuildStep extends Builder {
 			tempFileWriter.write(data);
 			tempFileWriter.close();
 
+            /*
+             * Copying temporary file to remote execution host
+             */
+            FilePath source = new FilePath(tempFile);
+            FilePath dest = new FilePath(Computer.currentComputer().getChannel(), workingDir + "/" + tempFile.getName());			
+			
 			/*
 			 * Analyze interpreter line (and use the desired interpreter)
 			 */
@@ -140,13 +146,13 @@ public class ScriptBuildStep extends Builder {
 				for (int i = 1; i < interpreterElements.length; i++) {
 					args.add(interpreterElements[i]);
 				}
-				args.add(tempFile.getName());
+				args.add(dest.getRemote());
 			} else {
 				// the shell executable is already configured for the Shell
 				// task, reuse it
 				final Shell.DescriptorImpl shellDescriptor = (Shell.DescriptorImpl) Jenkins.getInstance().getDescriptor(Shell.class);
 				final String interpreter = shellDescriptor.getShellOrDefault(workingDir.getChannel());
-				args.add(interpreter, tempFile.getName());
+				args.add(interpreter, dest.getRemote());
 			}
 
 			// Add additional parameters set by user
@@ -157,20 +163,14 @@ public class ScriptBuildStep extends Builder {
 				}
 			}
 
-			/*
-			 * Copying temporary file to remote execution host
-			 */
-			FilePath source = new FilePath(tempFile);
-			FilePath dest = new FilePath(Computer.currentComputer().getChannel(), workingDir + "/" + tempFile.getName());
-
 
 			try {
-				log.log(Level.FINE, "Copying temporary file to " + Computer.currentComputer().getHostName() + ":" + workingDir + "/" + tempFile.getName());
+				log.log(Level.FINE, "Copying temporary file to " + Computer.currentComputer().getHostName() + ":" + dest.getRemote());
 				source.copyTo(dest);
 				/*
 				 * Execute command remotely
 				 */
-				listener.getLogger().println("Executing temp file '" + tempFile.getPath() + "'");
+				listener.getLogger().println("Executing temp file '" + dest.getRemote() + "'");
 				int r = lastBuiltLauncher.launch().cmds(args).envs(env).stderr(listener.getLogger()).stdout(listener.getLogger()).pwd(workingDir).join();
 				returnValue = (r == 0);
 			} finally {
@@ -178,7 +178,7 @@ public class ScriptBuildStep extends Builder {
 				try {
 					dest.delete();
 				} catch (Exception e) {
-					e.printStackTrace(listener.fatalError("Cannot remove temporary script file '" + dest.getName() + "'"));
+					e.printStackTrace(listener.fatalError("Cannot remove temporary script file '" + dest.getRemote() + "'"));
 					returnValue = false;
 				}
 			}
