@@ -297,8 +297,8 @@ public class ScriptBuildStep extends Builder {
 			logger.log(Level.FINE, json.toString(2));
 
 			String id = json.getString("buildStepId");
-			final JSONObject definedArgs = json.getJSONObject("defineArgs");
-			if (!definedArgs.isNullObject()) {
+			final JSONObject definedArgs = json.optJSONObject("defineArgs");
+			if (definedArgs != null && !definedArgs.isNullObject()) {
 				JSONObject argsObj = definedArgs.optJSONObject("buildStepArgs");
 				if (argsObj == null) {
 					JSONArray argsArrayObj = definedArgs.optJSONArray("buildStepArgs");
