@@ -1,25 +1,14 @@
 package org.jenkinsci.plugins.managedscripts;
 
-import hudson.EnvVars;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.FilePath;
-import hudson.Launcher;
-import hudson.Util;
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Computer;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.tasks.CommandInterpreter;
-import hudson.tasks.BatchFile;
-import hudson.tasks.Shell;
-import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
-import hudson.util.VariableResolver;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,14 +18,12 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.jenkinsci.lib.configprovider.ConfigProvider;
 import org.jenkinsci.lib.configprovider.model.Config;
 import org.jenkinsci.plugins.managedscripts.ScriptConfig.Arg;
-import org.jenkinsci.plugins.managedscripts.ScriptConfig.ScriptConfigProvider;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -258,24 +245,4 @@ public class WinBatchBuildStep extends CommandInterpreter {
         }
     }
 
-    /**
-     * Checks whether the given parameter is a build parameter and if so, returns the value of it.
-     * 
-     * @param variableResolver
-     *            resolver to be used
-     * @param potentalVariable
-     *            the potential variable string. The string will be treated as variable, if it follows this pattern: ${XXX}
-     * @return value of the build parameter or the origin passed string
-     */
-    private String resolveVariable(VariableResolver<String> variableResolver, String potentalVariable) {
-        String value = potentalVariable;
-        if (potentalVariable != null) {
-            if (potentalVariable.startsWith("${") && potentalVariable.endsWith("}")) {
-                value = potentalVariable.substring(2, potentalVariable.length() - 1);
-                value = variableResolver.resolve(value);
-                log.log(Level.FINE, "resolve " + potentalVariable + " to " + value);
-            }
-        }
-        return value;
-    }
 }

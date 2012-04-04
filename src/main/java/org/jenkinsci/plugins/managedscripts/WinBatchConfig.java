@@ -67,7 +67,7 @@ public class WinBatchConfig extends Config {
         @Override
         public Config newConfig() {
             String id = getProviderId() + System.currentTimeMillis();
-            return new WinBatchConfig(id, "Build Step", "", "echo \"hello world\"", null);
+            return new WinBatchConfig(id, "Build Step", "", "echo hello", null);
         }
 
     }
