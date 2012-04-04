@@ -12,6 +12,8 @@ import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
+import hudson.tasks.CommandInterpreter;
+import hudson.tasks.BatchFile;
 import hudson.tasks.Shell;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
@@ -41,18 +43,14 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 /**
- * LibraryBuildStep {@link Builder}.
- * <p>
- * A project that uses this builder can choose a build step from a list of predefined config files that are uses as command line scripts. The hash-bang sequence at the beginning of each file is used
- * to determine the interpreter.
+ * A project that uses this builder can choose a build step from a list of predefined windows batch files that are used as command line scripts.
  * <p>
  * 
- * @author Norman Baumann
  * @author Dominik Bartholdi (imod)
  */
-public class ScriptBuildStep extends Builder {
+public class WinBatchBuildStep extends CommandInterpreter {
 
-    private static Logger log = Logger.getLogger(ScriptBuildStep.class.getName());
+    private static Logger log = Logger.getLogger(WinBatchBuildStep.class.getName());
 
     private final String buildStepId;
     private final String[] buildStepArgs;
@@ -66,7 +64,8 @@ public class ScriptBuildStep extends Builder {
      *            list of arguments specified as buildStepargs
      */
     @DataBoundConstructor
-    public ScriptBuildStep(String buildStepId, String[] buildStepArgs) {
+    public WinBatchBuildStep(String buildStepId, String[] buildStepArgs) {
+        super("---not a command---"); // not used anywhere...
         this.buildStepId = buildStepId;
         this.buildStepArgs = buildStepArgs;
     }
@@ -79,92 +78,38 @@ public class ScriptBuildStep extends Builder {
         return buildStepArgs;
     }
 
-    /**
-     * Perform the build step on the execution host.
-     * <p>
-     * Generates a temporary file and copies the content of the predefined config file (by using the buildStepId) into it. It then copies this file into the workspace directory of the execution host
-     * and executes it.
-     */
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-        boolean returnValue = true;
+    public String[] buildCommandLine(FilePath script) {
+
+        List<String> cml = new ArrayList<String>();
+        cml.add("cmd");
+        cml.add("/c");
+        cml.add("call");
+        cml.add(script.getRemote());
+
+        // Add additional parameters set by user
+        if (buildStepArgs != null) {
+            for (String arg : buildStepArgs) {
+                cml.add(arg);
+            }
+        }
+
+        // return new String[] { "cmd", "/c", "call", script.getRemote() };
+        return (String[]) cml.toArray(new String[cml.size()]);
+    }
+
+    @Override
+    protected String getContents() {
         Config buildStepConfig = getDescriptor().getBuildStepConfigById(buildStepId);
         if (buildStepConfig == null) {
-            listener.getLogger().println("Cannot find script with Id '" + buildStepId + "'. Are you sure it exists?");
-            return false;
+            throw new IllegalStateException("Cannot find batch file with Id '" + buildStepId + "'. Are you sure it exists?");
         }
-        listener.getLogger().println("executing script '" + buildStepId + "'");
-        FilePath dest = null;
-        try {
-            FilePath workingDir = build.getWorkspace();
-            EnvVars env = build.getEnvironment(listener);
-            String data = buildStepConfig.content;
+        return buildStepConfig.content + "\r\nexit %ERRORLEVEL%";
+    }
 
-            /*
-             * Copying temporary file to remote execution host
-             */
-            dest = workingDir.createTextTempFile("build_step_template", ".sh", data, false);
-            log.log(Level.FINE, "Wrote script to " + Computer.currentComputer().getDisplayName() + ":" + dest.getRemote());
-
-            /*
-             * Analyze interpreter line (and use the desired interpreter)
-             */
-            ArgumentListBuilder args = new ArgumentListBuilder();
-            if (data.startsWith("#!")) {
-                String interpreterLine = data.substring(2, data.indexOf("\n"));
-                String[] interpreterElements = interpreterLine.split("\\s+");
-                // Add interpreter to arguments list
-                String interpreter = interpreterElements[0];
-                args.add(interpreter);
-                listener.getLogger().println("Using custom interpreter: " + interpreterLine);
-                // Add addition parameter to arguments list
-                for (int i = 1; i < interpreterElements.length; i++) {
-                    args.add(interpreterElements[i]);
-                }
-            } else {
-                // the shell executable is already configured for the Shell
-                // task, reuse it
-                final Shell.DescriptorImpl shellDescriptor = (Shell.DescriptorImpl) Jenkins.getInstance().getDescriptor(Shell.class);
-                final String interpreter = shellDescriptor.getShellOrDefault(workingDir.getChannel());
-                args.add(interpreter);
-            }
-
-            args.add(dest.getRemote());
-
-            // Add additional parameters set by user
-            if (buildStepArgs != null) {
-                final VariableResolver<String> variableResolver = build.getBuildVariableResolver();
-                for (String arg : buildStepArgs) {
-                    args.add(resolveVariable(variableResolver, arg));
-                }
-            }
-
-            /*
-             * Execute command remotely
-             */
-            listener.getLogger().println("Executing temp file '" + dest.getRemote() + "'");
-            int r = launcher.launch().cmds(args).envs(env).stderr(listener.getLogger()).stdout(listener.getLogger()).pwd(workingDir).join();
-            returnValue = (r == 0);
-
-        } catch (IOException e) {
-            Util.displayIOException(e, listener);
-            e.printStackTrace(listener.fatalError("Cannot create temporary script '" + buildStepConfig.name + "'"));
-            returnValue = false;
-        } catch (Exception e) {
-            e.printStackTrace(listener.fatalError("Caught exception while loading script '" + buildStepConfig.name + "'"));
-            returnValue = false;
-        } finally {
-            try {
-                if (dest != null && dest.exists()) {
-                    dest.delete();
-                }
-            } catch (Exception e) {
-                e.printStackTrace(listener.fatalError("Cannot remove temporary script file '" + dest.getRemote() + "'"));
-                returnValue = false;
-            }
-        }
-        log.log(Level.FINE, "Finished script step");
-        return returnValue;
+    @Override
+    protected String getFileExtension() {
+        return ".bat";
     }
 
     // Overridden for better type safety.
@@ -174,11 +119,11 @@ public class ScriptBuildStep extends Builder {
     }
 
     /**
-     * Descriptor for {@link ScriptBuildStep}.
+     * Descriptor for {@link WinBatchBuildStep}.
      */
-    @Extension(ordinal = 50)
+    @Extension(ordinal = 55)
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-        final Logger logger = Logger.getLogger(ScriptBuildStep.class.getName());
+        final Logger logger = Logger.getLogger(WinBatchBuildStep.class.getName());
 
         /**
          * Enables this builder for all kinds of projects.
@@ -193,13 +138,13 @@ public class ScriptBuildStep extends Builder {
          */
         @Override
         public String getDisplayName() {
-            return Messages.buildstep_name();
+            return Messages.win_buildstep_name();
         }
 
         /**
-         * Return all config files (templates) that the user can choose from when creating a build step. Ordered by name.
+         * Return all batch files (templates) that the user can choose from when creating a build step. Ordered by name.
          * 
-         * @return A collection of config files of type {@link ScriptConfig}.
+         * @return A collection of batch files of type {@link WinBatchConfig}.
          */
         public Collection<Config> getAvailableBuildTemplates() {
             List<Config> allConfigs = new ArrayList<Config>(getBuildStepConfigProvider().getAllConfigs());
@@ -269,7 +214,7 @@ public class ScriptBuildStep extends Builder {
 
         private ConfigProvider getBuildStepConfigProvider() {
             ExtensionList<ConfigProvider> providers = ConfigProvider.all();
-            return providers.get(ScriptConfigProvider.class);
+            return providers.get(WinBatchConfig.WinBatchConfigProvider.class);
         }
 
         /**
@@ -282,7 +227,7 @@ public class ScriptBuildStep extends Builder {
          * @return A LibraryBuildStep instance.
          */
         @Override
-        public ScriptBuildStep newInstance(StaplerRequest req, JSONObject json) {
+        public WinBatchBuildStep newInstance(StaplerRequest req, JSONObject json) {
             logger.log(Level.FINE, "New instance of LibraryBuildStep requested with JSON data:");
             logger.log(Level.FINE, json.toString(2));
 
@@ -301,14 +246,14 @@ public class ScriptBuildStep extends Builder {
                             args[i++] = arguments.next().getString("arg");
                         }
                     }
-                    return new ScriptBuildStep(id, args);
+                    return new WinBatchBuildStep(id, args);
                 } else {
                     String[] args = new String[1];
                     args[0] = argsObj.getString("arg");
-                    return new ScriptBuildStep(id, args);
+                    return new WinBatchBuildStep(id, args);
                 }
             } else {
-                return new ScriptBuildStep(id, null);
+                return new WinBatchBuildStep(id, null);
             }
         }
     }
