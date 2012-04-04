@@ -27,6 +27,10 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
 	xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 			   		
+			   		<p>
+			   		 ${%description}
+			   		</p>
+			   		
 					<f:entry title="${%ID}" >
 						<f:textbox readonly="readonly" name="config.id" value="${config.id}" />
 					</f:entry>
