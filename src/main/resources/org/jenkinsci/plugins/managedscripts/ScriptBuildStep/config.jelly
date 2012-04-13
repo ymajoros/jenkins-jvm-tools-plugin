@@ -1,5 +1,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
+    <st:adjunct assumes="org.kohsuke.stapler.framework.prototype.prototype" includes="org.kohsuke.stapler.bind"/>
+    
 	<st:once>
 		<script type="text/javascript" src="${rootURL}/plugin/managed-scripts/js/managed-scripts.js" />
 	</st:once>
@@ -8,8 +10,7 @@
 			<f:entry title="">
 				<div>
 					No build templates are defined. Please define one
-					<a href="/configfiles">here</a>
-					.
+					<a href="/configfiles">here</a>.
 				</div>
 			</f:entry>
 		</j:when>
@@ -53,9 +54,6 @@
 	<st:bind var="desc" value="${descriptor}"/>
 	<st:once>
 		<script type="text/javascript">
-			
-			
-						
 			Event.observe(window, 'load', function() { 
 				var all = new Array();
 	   			all = document.getElementsByName('buildStepId');
