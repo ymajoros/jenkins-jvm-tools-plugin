@@ -90,10 +90,10 @@ public class ScriptBuildStep extends Builder {
         boolean returnValue = true;
         Config buildStepConfig = getDescriptor().getBuildStepConfigById(buildStepId);
         if (buildStepConfig == null) {
-            listener.getLogger().println("Cannot find script with Id '" + buildStepId + "'. Are you sure it exists?");
+            listener.getLogger().println(Messages.config_does_not_exist(buildStepId));
             return false;
         }
-        listener.getLogger().println("executing script '" + buildStepId + "'");
+        listener.getLogger().println("executing script '" + buildStepConfig.name + "'");
         FilePath dest = null;
         try {
             FilePath workingDir = build.getWorkspace();
@@ -116,7 +116,7 @@ public class ScriptBuildStep extends Builder {
                 // Add interpreter to arguments list
                 String interpreter = interpreterElements[0];
                 args.add(interpreter);
-                listener.getLogger().println("Using custom interpreter: " + interpreterLine);
+                log.log(Level.FINE, "Using custom interpreter: " + interpreterLine);
                 // Add addition parameter to arguments list
                 for (int i = 1; i < interpreterElements.length; i++) {
                     args.add(interpreterElements[i]);
@@ -142,13 +142,12 @@ public class ScriptBuildStep extends Builder {
             /*
              * Execute command remotely
              */
-            listener.getLogger().println("Executing temp file '" + dest.getRemote() + "'");
             int r = launcher.launch().cmds(args).envs(env).stderr(listener.getLogger()).stdout(listener.getLogger()).pwd(workingDir).join();
             returnValue = (r == 0);
 
         } catch (IOException e) {
             Util.displayIOException(e, listener);
-            e.printStackTrace(listener.fatalError("Cannot create temporary script '" + buildStepConfig.name + "'"));
+            e.printStackTrace(listener.fatalError("Cannot create temporary script for '" + buildStepConfig.name + "'"));
             returnValue = false;
         } catch (Exception e) {
             e.printStackTrace(listener.fatalError("Caught exception while loading script '" + buildStepConfig.name + "'"));
@@ -283,9 +282,6 @@ public class ScriptBuildStep extends Builder {
          */
         @Override
         public ScriptBuildStep newInstance(StaplerRequest req, JSONObject json) {
-            logger.log(Level.FINE, "New instance of LibraryBuildStep requested with JSON data:");
-            logger.log(Level.FINE, json.toString(2));
-
             String id = json.getString("buildStepId");
             final JSONObject definedArgs = json.optJSONObject("defineArgs");
             if (definedArgs != null && !definedArgs.isNullObject()) {

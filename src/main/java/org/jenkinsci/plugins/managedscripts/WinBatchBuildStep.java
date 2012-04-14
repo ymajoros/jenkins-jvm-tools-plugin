@@ -85,7 +85,7 @@ public class WinBatchBuildStep extends CommandInterpreter {
     protected String getContents() {
         Config buildStepConfig = getDescriptor().getBuildStepConfigById(getBuildStepId());
         if (buildStepConfig == null) {
-            throw new IllegalStateException("Cannot find batch file with Id '" + getBuildStepId() + "'. Are you sure it exists?");
+            throw new IllegalStateException(Messages.config_does_not_exist(getBuildStepId()));
         }
         return buildStepConfig.content + "\r\nexit %ERRORLEVEL%";
     }
