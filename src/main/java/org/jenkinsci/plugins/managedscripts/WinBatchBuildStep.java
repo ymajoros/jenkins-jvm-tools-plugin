@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.sf.json.JSONArray;
@@ -23,7 +22,7 @@ import net.sf.json.JSONObject;
 
 import org.jenkinsci.lib.configprovider.ConfigProvider;
 import org.jenkinsci.lib.configprovider.model.Config;
-import org.jenkinsci.plugins.managedscripts.ScriptConfig.Arg;
+import org.jenkinsci.plugins.managedscripts.WinBatchConfig.Arg;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -34,12 +33,10 @@ import org.kohsuke.stapler.bind.JavaScriptMethod;
  * <p>
  * 
  * @author Dominik Bartholdi (imod)
+ * @see hudson.tasks.BatchFile
  */
 public class WinBatchBuildStep extends CommandInterpreter {
 
-    private static Logger log = Logger.getLogger(WinBatchBuildStep.class.getName());
-
-    private final String buildStepId;
     private final String[] buildStepArgs;
 
     /**
@@ -52,13 +49,12 @@ public class WinBatchBuildStep extends CommandInterpreter {
      */
     @DataBoundConstructor
     public WinBatchBuildStep(String buildStepId, String[] buildStepArgs) {
-        super("---not a command---"); // not used anywhere...
-        this.buildStepId = buildStepId;
+        super(buildStepId); // save buildStepId as command
         this.buildStepArgs = buildStepArgs;
     }
 
     public String getBuildStepId() {
-        return buildStepId;
+        return getCommand();
     }
 
     public String[] getBuildStepArgs() {
@@ -87,9 +83,9 @@ public class WinBatchBuildStep extends CommandInterpreter {
 
     @Override
     protected String getContents() {
-        Config buildStepConfig = getDescriptor().getBuildStepConfigById(buildStepId);
+        Config buildStepConfig = getDescriptor().getBuildStepConfigById(getBuildStepId());
         if (buildStepConfig == null) {
-            throw new IllegalStateException("Cannot find batch file with Id '" + buildStepId + "'. Are you sure it exists?");
+            throw new IllegalStateException("Cannot find batch file with Id '" + getBuildStepId() + "'. Are you sure it exists?");
         }
         return buildStepConfig.content + "\r\nexit %ERRORLEVEL%";
     }
@@ -150,8 +146,8 @@ public class WinBatchBuildStep extends CommandInterpreter {
          *            The Id of a config file.
          * @return If Id can be found a Config object that represents the given Id is returned. Otherwise null.
          */
-        public ScriptConfig getBuildStepConfigById(String id) {
-            return (ScriptConfig) getBuildStepConfigProvider().getConfigById(id);
+        public WinBatchConfig getBuildStepConfigById(String id) {
+            return (WinBatchConfig) getBuildStepConfigProvider().getConfigById(id);
         }
 
         /**
@@ -163,7 +159,7 @@ public class WinBatchBuildStep extends CommandInterpreter {
          */
         @JavaScriptMethod
         public String getArgsDescription(String configId) {
-            final ScriptConfig config = getBuildStepConfigById(configId);
+            final WinBatchConfig config = getBuildStepConfigById(configId);
             if (config != null) {
                 if (config.args != null && !config.args.isEmpty()) {
                     StringBuilder sb = new StringBuilder("Required arguments: ");
@@ -191,11 +187,11 @@ public class WinBatchBuildStep extends CommandInterpreter {
          * @return
          */
         public FormValidation doCheckBuildStepId(@QueryParameter String buildStepId) {
-            final ScriptConfig config = getBuildStepConfigById(buildStepId);
+            final WinBatchConfig config = getBuildStepConfigById(buildStepId);
             if (config != null) {
                 return FormValidation.ok();
             } else {
-                return FormValidation.error("you must select a valid script");
+                return FormValidation.error("you must select a valid batch file");
             }
         }
 
@@ -215,9 +211,6 @@ public class WinBatchBuildStep extends CommandInterpreter {
          */
         @Override
         public WinBatchBuildStep newInstance(StaplerRequest req, JSONObject json) {
-            logger.log(Level.FINE, "New instance of LibraryBuildStep requested with JSON data:");
-            logger.log(Level.FINE, json.toString(2));
-
             String id = json.getString("buildStepId");
             final JSONObject definedArgs = json.optJSONObject("defineArgs");
             if (definedArgs != null && !definedArgs.isNullObject()) {
