@@ -199,7 +199,7 @@ public class ScriptBuildStep extends Builder {
         /**
          * Return all config files (templates) that the user can choose from when creating a build step. Ordered by name.
          * 
-         * @return A collection of config files of type {@link ScriptBuildStepConfigProvider}.
+         * @return A collection of config files of type {@link ScriptConfig}.
          */
         public Collection<Config> getAvailableBuildTemplates() {
             List<Config> allConfigs = new ArrayList<Config>(getBuildStepConfigProvider().getAllConfigs());
@@ -267,7 +267,7 @@ public class ScriptBuildStep extends Builder {
             }
         }
 
-        private ScriptConfigProvider getBuildStepConfigProvider() {
+        private ConfigProvider getBuildStepConfigProvider() {
             ExtensionList<ConfigProvider> providers = ConfigProvider.all();
             return providers.get(ScriptConfigProvider.class);
         }
