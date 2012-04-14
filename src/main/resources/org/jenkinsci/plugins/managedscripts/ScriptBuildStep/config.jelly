@@ -33,7 +33,7 @@
 				<div name="argumentDescription" />
 				<f:block>
 					<table>
-						<f:optionalBlock name="defineArgs" title="${Define arguments}" checked="${!empty(instance.buildStepArgs)}" help="/plugin/managed-scripts/help-defineArgs.html">
+						<f:optionalBlock name="defineArgs" title="${%Define arguments}" checked="${!empty(instance.buildStepArgs)}" help="/plugin/managed-scripts/help-defineArgs.html">
 							<f:entry title="${%Argument list}" field="buildStepArgs">
 								<f:repeatable var="arg" items="${instance.buildStepArgs}" name="buildStepArgs" noAddButton="true" minimum="1">
 									<table width="100%">
