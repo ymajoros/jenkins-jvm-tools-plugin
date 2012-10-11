@@ -17,7 +17,7 @@
 		</j:when>
 		<j:otherwise>
 			<f:entry title="${%Script}" field="buildStepContent">
-				<select name="buildStepId" onChange="ms_initDetailLink(this);ms_showParams(this, this.value);">
+				<select name="buildStepId" onChange="ms_initDetailLink('${rootURL}', this);ms_showParams(this, this.value);">
 					<option value="">(Default)</option>
 					<j:forEach var="inst" items="${descriptor.availableBuildTemplates}" varStatus="loop">
 						<j:choose>
@@ -59,7 +59,7 @@
 				var all = new Array();
 	   			all = document.getElementsByName('buildStepId');
 				for(var i = 0; i &lt; all.length; i++) {
-					ms_initDetailLink(all.item(i));
+					ms_initDetailLink('<j:out value="${rootURL}" />', all.item(i));
 					ms_showParams(all.item(i), all.item(i).value);
 				}
 			});
