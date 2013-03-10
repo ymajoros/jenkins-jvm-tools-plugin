@@ -17,15 +17,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-
 import org.jenkinsci.lib.configprovider.ConfigProvider;
 import org.jenkinsci.lib.configprovider.model.Config;
 import org.jenkinsci.plugins.managedscripts.WinBatchConfig.Arg;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 /**
@@ -39,6 +35,38 @@ public class WinBatchBuildStep extends CommandInterpreter {
 
     private final String[] buildStepArgs;
 
+    public static class ArgValue {
+        public final String arg;
+
+        @DataBoundConstructor
+        public ArgValue(String arg) {
+            this.arg = arg;
+        }
+    }
+
+    /**
+     * The constructor used at form submission
+     * 
+     * @param buildStepId
+     *            the Id of the config file
+     * @param defineArgs
+     *            if the passed arguments should be saved (required because of html form submission, which also sends hidden values)
+     * @param buildStepArgs
+     *            list of arguments specified as buildStepargs
+     */
+    @DataBoundConstructor
+    public WinBatchBuildStep(String buildStepId, boolean defineArgs, ArgValue[] buildStepArgs) {
+        super(buildStepId);
+        List<String> l = null;
+        if (defineArgs && buildStepArgs != null) {
+            l = new ArrayList<String>();
+            for (ArgValue arg : buildStepArgs) {
+                l.add(arg.arg);
+            }
+        }
+        this.buildStepArgs = l == null ? null : l.toArray(new String[l.size()]);
+    }
+
     /**
      * The constructor
      * 
@@ -47,7 +75,6 @@ public class WinBatchBuildStep extends CommandInterpreter {
      * @param buildStepArgs
      *            list of arguments specified as buildStepargs
      */
-    @DataBoundConstructor
     public WinBatchBuildStep(String buildStepId, String[] buildStepArgs) {
         super(buildStepId); // save buildStepId as command
         this.buildStepArgs = buildStepArgs;
@@ -200,42 +227,6 @@ public class WinBatchBuildStep extends CommandInterpreter {
             return providers.get(WinBatchConfig.WinBatchConfigProvider.class);
         }
 
-        /**
-         * Creates a new instance of LibraryBuildStep.
-         * 
-         * @param req
-         *            The web request as initialized by the user.
-         * @param json
-         *            A JSON object representing the users input.
-         * @return A LibraryBuildStep instance.
-         */
-        @Override
-        public WinBatchBuildStep newInstance(StaplerRequest req, JSONObject json) {
-            String id = json.getString("buildStepId");
-            final JSONObject definedArgs = json.optJSONObject("defineArgs");
-            if (definedArgs != null && !definedArgs.isNullObject()) {
-                JSONObject argsObj = definedArgs.optJSONObject("buildStepArgs");
-                if (argsObj == null) {
-                    JSONArray argsArrayObj = definedArgs.optJSONArray("buildStepArgs");
-                    String[] args = null;
-                    if (argsArrayObj != null) {
-                        Iterator<JSONObject> arguments = argsArrayObj.iterator();
-                        args = new String[argsArrayObj.size()];
-                        int i = 0;
-                        while (arguments.hasNext()) {
-                            args[i++] = arguments.next().getString("arg");
-                        }
-                    }
-                    return new WinBatchBuildStep(id, args);
-                } else {
-                    String[] args = new String[1];
-                    args[0] = argsObj.getString("arg");
-                    return new WinBatchBuildStep(id, args);
-                }
-            } else {
-                return new WinBatchBuildStep(id, null);
-            }
-        }
     }
 
 }

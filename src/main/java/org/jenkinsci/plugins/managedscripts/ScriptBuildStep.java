@@ -28,8 +28,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
 
 import org.jenkinsci.lib.configprovider.ConfigProvider;
 import org.jenkinsci.lib.configprovider.model.Config;
@@ -37,7 +35,6 @@ import org.jenkinsci.plugins.managedscripts.ScriptConfig.Arg;
 import org.jenkinsci.plugins.managedscripts.ScriptConfig.ScriptConfigProvider;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 /**
@@ -57,15 +54,38 @@ public class ScriptBuildStep extends Builder {
     private final String buildStepId;
     private final String[] buildStepArgs;
 
+    public static class ArgValue {
+        public final String arg;
+
+        @DataBoundConstructor
+        public ArgValue(String arg) {
+            this.arg = arg;
+        }
+    }
+
     /**
-     * The constructor
+     * The constructor used at form submission
      * 
      * @param buildStepId
      *            the Id of the config file
+     * @param defineArgs
+     *            if the passed arguments should be saved (required because of html form submission, which also sends hidden values)
      * @param buildStepArgs
      *            list of arguments specified as buildStepargs
      */
     @DataBoundConstructor
+    public ScriptBuildStep(String buildStepId, boolean defineArgs, ArgValue[] buildStepArgs) {
+        this.buildStepId = buildStepId;
+        List<String> l = null;
+        if (defineArgs && buildStepArgs != null) {
+            l = new ArrayList<String>();
+            for (ArgValue arg : buildStepArgs) {
+                l.add(arg.arg);
+            }
+        }
+        this.buildStepArgs = l == null ? null : l.toArray(new String[l.size()]);
+    }
+
     public ScriptBuildStep(String buildStepId, String[] buildStepArgs) {
         this.buildStepId = buildStepId;
         this.buildStepArgs = buildStepArgs;
@@ -271,42 +291,6 @@ public class ScriptBuildStep extends Builder {
             return providers.get(ScriptConfigProvider.class);
         }
 
-        /**
-         * Creates a new instance of LibraryBuildStep.
-         * 
-         * @param req
-         *            The web request as initialized by the user.
-         * @param json
-         *            A JSON object representing the users input.
-         * @return A LibraryBuildStep instance.
-         */
-        @Override
-        public ScriptBuildStep newInstance(StaplerRequest req, JSONObject json) {
-            String id = json.getString("buildStepId");
-            final JSONObject definedArgs = json.optJSONObject("defineArgs");
-            if (definedArgs != null && !definedArgs.isNullObject()) {
-                JSONObject argsObj = definedArgs.optJSONObject("buildStepArgs");
-                if (argsObj == null) {
-                    JSONArray argsArrayObj = definedArgs.optJSONArray("buildStepArgs");
-                    String[] args = null;
-                    if (argsArrayObj != null) {
-                        Iterator<JSONObject> arguments = argsArrayObj.iterator();
-                        args = new String[argsArrayObj.size()];
-                        int i = 0;
-                        while (arguments.hasNext()) {
-                            args[i++] = arguments.next().getString("arg");
-                        }
-                    }
-                    return new ScriptBuildStep(id, args);
-                } else {
-                    String[] args = new String[1];
-                    args[0] = argsObj.getString("arg");
-                    return new ScriptBuildStep(id, args);
-                }
-            } else {
-                return new ScriptBuildStep(id, null);
-            }
-        }
     }
 
     /**
