@@ -33,6 +33,7 @@ import org.jenkinsci.lib.configprovider.ConfigProvider;
 import org.jenkinsci.lib.configprovider.model.Config;
 import org.jenkinsci.plugins.managedscripts.ScriptConfig.Arg;
 import org.jenkinsci.plugins.managedscripts.ScriptConfig.ScriptConfigProvider;
+import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
@@ -153,9 +154,8 @@ public class ScriptBuildStep extends Builder {
 
             // Add additional parameters set by user
             if (buildStepArgs != null) {
-                final VariableResolver<String> variableResolver = build.getBuildVariableResolver();
                 for (String arg : buildStepArgs) {
-                    args.add(resolveVariable(variableResolver, arg));
+                    args.add(TokenMacro.expandAll(build, listener, arg, false, null));
                 }
             }
 
@@ -291,26 +291,5 @@ public class ScriptBuildStep extends Builder {
             return providers.get(ScriptConfigProvider.class);
         }
 
-    }
-
-    /**
-     * Checks whether the given parameter is a build parameter and if so, returns the value of it.
-     * 
-     * @param variableResolver
-     *            resolver to be used
-     * @param potentalVariable
-     *            the potential variable string. The string will be treated as variable, if it follows this pattern: ${XXX}
-     * @return value of the build parameter or the origin passed string
-     */
-    private String resolveVariable(VariableResolver<String> variableResolver, String potentalVariable) {
-        String value = potentalVariable;
-        if (potentalVariable != null) {
-            if (potentalVariable.startsWith("${") && potentalVariable.endsWith("}")) {
-                value = potentalVariable.substring(2, potentalVariable.length() - 1);
-                value = variableResolver.resolve(value);
-                log.log(Level.FINE, "resolve " + potentalVariable + " to " + value);
-            }
-        }
-        return value;
     }
 }
