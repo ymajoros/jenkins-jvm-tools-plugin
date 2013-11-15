@@ -62,7 +62,6 @@
 					ms_initDetailLink('<j:out value="${rootURL}" />', all.item(i));
 					ms_showParams(all.item(i), all.item(i).value);
 					ms_getArgs(all.item(i), all.item(i).value);
-
 				}
 			});
 		</script>
