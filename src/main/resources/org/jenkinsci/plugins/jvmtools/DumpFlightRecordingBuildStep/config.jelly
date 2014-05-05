@@ -1,0 +1,30 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <st:adjunct assumes="org.kohsuke.stapler.framework.prototype.prototype" includes="org.kohsuke.stapler.bind"/>
+    
+    <f:entry title="${%Host Name}" help="The host name to connect to">
+        <f:textbox field="hostName" />
+    </f:entry>
+    <f:entry title="${%Port}" help="The target port on which the jmx beans are listening (profiler port)">
+        <f:textbox field="port" />
+    </f:entry>
+    <f:entry title="${%User Name}" help="The name of the user to connect to target system">
+        <f:textbox field="userName" />
+    </f:entry>
+    <f:entry title="${%Password}" help="The password of the user to connect to target system">
+        <f:password field="password" />
+    </f:entry>
+    <f:entry title="${%Instance Name}" help="The instance name of the flight recording to reference">
+        <f:textbox field="instanceName" />
+    </f:entry>
+    <f:entry title="${%File Name}" help="The target file name">
+        <f:textbox field="fileName" />
+    </f:entry>
+    <f:entry title="${%Stop}" help="Stop the flight recording after dumping">
+        <f:checkbox field="stop" />
+    </f:entry>
+    <f:entry title="${%Close}" help="Close the flight recording after dumping">
+        <f:checkbox field="close" />
+    </f:entry>
+ 
+</j:jelly>

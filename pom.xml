@@ -9,17 +9,17 @@
 	</parent>
 
 	<groupId>org.jenkinsci.plugins</groupId>
-	<artifactId>managed-scripts</artifactId>
-	<version>1.2-SNAPSHOT</version>
+	<artifactId>jvm-tools-plugin</artifactId>
+	<version>0.1-SNAPSHOT</version>
 	<packaging>hpi</packaging>
-	<name>Managed Scripts</name>
-	<description>Managed scripts are shell script which are managed centrally by an administrator and can be referenced as a build step within jobs.</description>
+	<name>jvm-tools-plugin</name>
+	<description>This plugin defines build steps to access some jvm tools, like flight recording and thread dumps.</description>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
-	<url>https://wiki.jenkins-ci.org/display/JENKINS/Managed+Script+Plugin</url>
+	<url>https://wiki.jenkins-ci.org/display/JENKINS/JVM+Tools</url>
 	<scm>
 		<connection>scm:git:git://github.com/jenkinsci/managed-scripts-plugin.git</connection>
 		<developerConnection>scm:git:git@github.com:jenkinsci/managed-scripts-plugin.git</developerConnection>
@@ -77,6 +77,15 @@
 				<version>1.90</version>
 				<extensions>true</extensions>
 			</plugin>
+		 <plugin>
+		  <groupId>org.apache.maven.plugins</groupId>
+		  <artifactId>maven-compiler-plugin</artifactId>
+		  <version>2.3.2</version>
+		  <configuration>
+		   <source>1.7</source>
+		   <target>1.7</target>
+		  </configuration>
+		 </plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
