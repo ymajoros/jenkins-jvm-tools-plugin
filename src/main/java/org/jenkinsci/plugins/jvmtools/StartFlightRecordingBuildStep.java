@@ -9,11 +9,11 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.management.JMException;
 import javax.management.remote.JMXConnector;
@@ -114,7 +114,8 @@ public class StartFlightRecordingBuildStep extends Builder {
             // start it
             jRockitDiagnosticService.startFlightRecording(flightRecordingCanonicalName);
 
-            log.log(Level.FINE, "Flight recording started");
+            String message = MessageFormat.format("Flight recording started {0}", flightRecordingCanonicalName);
+            listener.getLogger().println(message);
 
             return true;
         } catch (IOException | JMException exception) {
