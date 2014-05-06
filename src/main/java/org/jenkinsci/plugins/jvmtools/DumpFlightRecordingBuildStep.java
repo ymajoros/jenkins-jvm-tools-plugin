@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.jvmtools;
 
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
@@ -124,6 +125,11 @@ public class DumpFlightRecordingBuildStep extends Builder {
             }
 
             Path path = Paths.get(fileName);
+            if (!path.isAbsolute()) {
+                FilePath workingDir = build.getWorkspace();
+                String parentDirName = workingDir.getName();
+                path = Paths.get(parentDirName, fileName);
+            }
             Path absolutePath = path.toAbsolutePath();
             jRockitDiagnosticService.dumpFlightRecording(flightRecordingCanonicalName, absolutePath);
 

@@ -9,10 +9,16 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.management.JMException;
 import javax.management.remote.JMXConnector;
+import org.jenkinsci.lib.configprovider.model.Config;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -169,5 +175,28 @@ public class StartFlightRecordingBuildStep extends Builder {
 //                return FormValidation.error("you must select a valid script");
         }
 
+        /**
+         * Return all jvm configurations that the user can choose from when
+         * creating a build step. Ordered by name.
+         *
+         * @return A collection of jvm configurations of type
+         * {@link JvmConfigItem}.
+         */
+        public Collection<JvmConfigItem> getAvailableJvmConfigItems() {
+            JvmConfig jvmConfig = JvmConfig.get();
+            List<JvmConfigItem> jvmConfigItems = jvmConfig.getJvmConfigItems();
+
+            Collections.sort(jvmConfigItems, new Comparator<JvmConfigItem>() {
+
+                @Override
+                public int compare(JvmConfigItem jvmConfigItem1, JvmConfigItem jvmConfigItem2) {
+                    String name1 = jvmConfigItem1.getName();
+                    String name2 = jvmConfigItem2.getName();
+                    return name1.compareToIgnoreCase(name2);
+                }
+            });
+
+            return jvmConfigItems;
+        }
     }
 }
