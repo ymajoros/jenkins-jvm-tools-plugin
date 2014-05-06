@@ -32,48 +32,27 @@ public class StartFlightRecordingBuildStep extends Builder {
 
     private static final Logger log = Logger.getLogger(StartFlightRecordingBuildStep.class.getName());
 
-    private final String hostName;
-    private final int port;
-    private final String userName;
-    private final String password;
+    private final String jvmConfigName;
     private final Long maxDuration;
     private final String instanceName;
 
     /**
      * The constructor used at form submission
      *
-     * @param hostName
-     * @param port
-     * @param userName
-     * @param password
+     * @param jvmConfigName
      * @param maxDuration
      * @param instanceName
      */
     @DataBoundConstructor
-    public StartFlightRecordingBuildStep(String hostName, int port, String userName, String password, Long maxDuration, String instanceName) {
-        this.hostName = hostName;
-        this.port = port;
-        this.userName = userName;
-        this.password = password;
+    public StartFlightRecordingBuildStep(String jvmConfigName, Long maxDuration, String instanceName) {
+        this.jvmConfigName = jvmConfigName;
         this.maxDuration = maxDuration;
         this.instanceName = instanceName;
     }
 
     //<editor-fold defaultstate="collapsed" desc="get/set...">
-    public String getHostName() {
-        return hostName;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getUser() {
-        return userName;
-    }
-
-    public String getPassword() {
-        return password;
+    public String getJvmConfigName() {
+        return jvmConfigName;
     }
 
     public long getMaxDuration() {
@@ -102,6 +81,17 @@ public class StartFlightRecordingBuildStep extends Builder {
         try {
             listener.getLogger().println("Starting flight recording");
 
+            JvmConfigItem jvmConfigItem = getDescriptor().getBuildStepConfigByName(jvmConfigName);
+            if (jvmConfigItem == null) {
+                listener.getLogger().println(Messages.config_does_not_exist(jvmConfigName));
+                return false;
+            }
+
+            String hostName = jvmConfigItem.getHostName();
+            int port = jvmConfigItem.getPort();
+            String userName = jvmConfigItem.getUserName();
+            String password = jvmConfigItem.getPassword();
+
             JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
             JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
 
@@ -109,7 +99,8 @@ public class StartFlightRecordingBuildStep extends Builder {
             String flightRecordingCanonicalName = jRockitDiagnosticService.createFlightRecording();
 
             // register (for use in stop / dump etc.)
-            FlightRecordingRepository.put(instanceName, flightRecordingCanonicalName);
+            FlightRecordingRepository.saveCanonicalName(instanceName, flightRecordingCanonicalName);
+            FlightRecordingRepository.saveJvmConfigItem(instanceName, jvmConfigItem);
 
             // start it
             jRockitDiagnosticService.startFlightRecording(flightRecordingCanonicalName);
@@ -161,15 +152,12 @@ public class StartFlightRecordingBuildStep extends Builder {
         /**
          * validate that an existing config was chosen
          *
-         * @param hostName
-         * @param port
-         * @param userName
-         * @param password
+         * @param jvmConfigName
          * @param maxDuration
          * @param instanceName
          * @return
          */
-        public FormValidation doCheckBuildStepId(@QueryParameter String hostName, @QueryParameter int port, @QueryParameter String userName, @QueryParameter String password, @QueryParameter Long maxDuration, @QueryParameter String instanceName) {
+        public FormValidation doCheckBuildStepId(@QueryParameter String jvmConfigName, @QueryParameter Long maxDuration, @QueryParameter String instanceName) {
             return FormValidation.ok();
 //                return FormValidation.error("you must select a valid script");
         }
@@ -196,6 +184,17 @@ public class StartFlightRecordingBuildStep extends Builder {
             });
 
             return jvmConfigItems;
+        }
+
+        private JvmConfigItem getBuildStepConfigByName(String jvmConfigName) {
+            Collection<JvmConfigItem> availableJvmConfigItems = getAvailableJvmConfigItems();
+            for (JvmConfigItem availableJvmConfigItem : availableJvmConfigItems) {
+                String availableJvmConfigItemName = availableJvmConfigItem.getName();
+                if (availableJvmConfigItemName.equals(jvmConfigName)) {
+                    return availableJvmConfigItem;
+                }
+            }
+            return null;
         }
     }
 }

@@ -28,10 +28,6 @@ public class DumpFlightRecordingBuildStep extends Builder {
 
     private static final Logger log = Logger.getLogger(DumpFlightRecordingBuildStep.class.getName());
 
-    private final String hostName;
-    private final int port;
-    private final String userName;
-    private final String password;
     private final String instanceName;
     private final String fileName;
     private final boolean stop;
@@ -40,21 +36,13 @@ public class DumpFlightRecordingBuildStep extends Builder {
     /**
      * The constructor used at form submission
      *
-     * @param hostName
-     * @param port
-     * @param userName
-     * @param password
      * @param instanceName
      * @param fileName
      * @param stop
      * @param close
      */
     @DataBoundConstructor
-    public DumpFlightRecordingBuildStep(String hostName, int port, String userName, String password, String instanceName, String fileName, boolean stop, boolean close) {
-        this.hostName = hostName;
-        this.port = port;
-        this.userName = userName;
-        this.password = password;
+    public DumpFlightRecordingBuildStep(String instanceName, String fileName, boolean stop, boolean close) {
         this.instanceName = instanceName;
         this.fileName = fileName;
         this.stop = stop;
@@ -62,22 +50,6 @@ public class DumpFlightRecordingBuildStep extends Builder {
     }
 
     //<editor-fold defaultstate="collapsed" desc="get/set...">
-    public String getHostName() {
-        return hostName;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getUser() {
-        return userName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
     public String getInstanceName() {
         return instanceName;
     }
@@ -112,11 +84,18 @@ public class DumpFlightRecordingBuildStep extends Builder {
         try {
             listener.getLogger().println("Dumping flight recording");
 
+            // find flight recording
+            String flightRecordingCanonicalName = FlightRecordingRepository.getCanonicalName(instanceName);
+            JvmConfigItem jvmConfigItem = FlightRecordingRepository.getJvmConfigItem(instanceName);
+
+            String hostName = jvmConfigItem.getHostName();
+            int port = jvmConfigItem.getPort();
+            String userName = jvmConfigItem.getUserName();
+            String password = jvmConfigItem.getPassword();
+
+            // connect
             JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
             JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
-
-            // find flight recording
-            String flightRecordingCanonicalName = FlightRecordingRepository.get(instanceName);
 
             // stop it
             if (stop) {
@@ -127,8 +106,8 @@ public class DumpFlightRecordingBuildStep extends Builder {
             Path path = Paths.get(fileName);
             if (!path.isAbsolute()) {
                 FilePath workingDir = build.getWorkspace();
-                String parentDirName = workingDir.getName();
-                path = Paths.get(parentDirName, fileName);
+                String workspaceDirName = workingDir.getRemote();
+                path = Paths.get(workspaceDirName, fileName);
             }
             Path absolutePath = path.toAbsolutePath();
             jRockitDiagnosticService.dumpFlightRecording(flightRecordingCanonicalName, absolutePath);

@@ -2,21 +2,38 @@
 
     <st:adjunct assumes="org.kohsuke.stapler.framework.prototype.prototype" includes="org.kohsuke.stapler.bind"/>
     
-    <f:entry title="${%Host Name}" help="The host name to connect to">
-        <f:textbox field="hostName" />
-    </f:entry>
-    <f:entry title="${%Port}" help="The target port on which the jmx beans are listening (profiler port)">
-        <f:textbox field="port" />
-    </f:entry>
-    <f:entry title="${%User Name}" help="The name of the user to connect to target system">
-        <f:textbox field="userName" />
-    </f:entry>
-    <f:entry title="${%Password}" help="The password of the user to connect to target system">
-        <f:password field="password" />
-    </f:entry>
+    <j:choose>
+        <j:when test="${empty(descriptor.availableJvmConfigItems)}">
+            <f:entry title="">
+                <div>
+                    No jvm configuration is defined. Please define one
+                    <a href="/globalconfiguration">here</a>.
+                </div>
+            </f:entry>
+        </j:when>
+        <j:otherwise>
+            <f:entry title="${%JVM config}">
+                <select name="jvmConfigName" field="jvmConfigName">
+                    <option value="">(Default)</option>
+                    <j:forEach var="inst" items="${descriptor.availableJvmConfigItems}" varStatus="loop">
+                        <j:choose>
+                            <j:when test="${inst.name == instance.jvmConfigName}">
+                                <option value="${inst.name}" selected="selected">${inst.name} - ${inst.hostName}:${inst.port}</option>
+                            </j:when>
+                            <j:otherwise>
+                                <option value="${inst.name}">${inst.name} - ${inst.hostName}:${inst.port}</option>
+                            </j:otherwise>
+                        </j:choose>
+                    </j:forEach>
+                </select>
+            </f:entry>
+        </j:otherwise>
+    </j:choose>
+        
     <f:entry title="${%Max duration}" help="Max duration of the flight recording.">
         <f:textbox field="maxDuration" />
     </f:entry>
+    
     <f:entry title="${%Instance Name}" help="The instance name that will be used to refer to this flight recording">
         <f:textbox field="instanceName" />
     </f:entry>

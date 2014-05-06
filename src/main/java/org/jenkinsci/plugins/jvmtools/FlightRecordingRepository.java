@@ -10,17 +10,29 @@ import java.util.Map;
 public class FlightRecordingRepository {
 
     private static final Map<String, String> shortNameToCanonicalNameMap = new HashMap<>();
+    private static final Map<String, JvmConfigItem> shortNameToJvmConfigMap = new HashMap<>();
 
-    public static String get(String shortName) {
+    public static String getCanonicalName(String shortName) {
         return shortNameToCanonicalNameMap.get(shortName);
     }
 
-    public static String put(String shortName, String canonicalName) {
+    public static String saveCanonicalName(String shortName, String canonicalName) {
         return shortNameToCanonicalNameMap.put(shortName, canonicalName);
     }
 
-    public static String remove(String shortName) {
-        return shortNameToCanonicalNameMap.remove(shortName);
+    public static JvmConfigItem getJvmConfigItem(String shortName) {
+        return shortNameToJvmConfigMap.get(shortName);
     }
+
+    public static JvmConfigItem saveJvmConfigItem(String shortName, JvmConfigItem jvmConfigItem) {
+        return shortNameToJvmConfigMap.put(shortName, jvmConfigItem);
+    }
+
+    public static void remove(String shortName) {
+        shortNameToCanonicalNameMap.remove(shortName);
+        shortNameToJvmConfigMap.remove(shortName);
+    }
+    
+    
 
 }

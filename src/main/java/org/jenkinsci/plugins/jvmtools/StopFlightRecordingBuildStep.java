@@ -24,44 +24,16 @@ public class StopFlightRecordingBuildStep extends Builder {
 
     private static final Logger log = Logger.getLogger(StopFlightRecordingBuildStep.class.getName());
 
-    private final String hostName;
-    private final int port;
-    private final String userName;
-    private final String password;
     private final String instanceName;
 
     /**
      * The constructor used at form submission
      *
-     * @param hostName
-     * @param port
-     * @param userName
-     * @param password
      * @param instanceName
      */
     @DataBoundConstructor
-    public StopFlightRecordingBuildStep(String hostName, int port, String userName, String password, String instanceName) {
-        this.hostName = hostName;
-        this.port = port;
-        this.userName = userName;
-        this.password = password;
+    public StopFlightRecordingBuildStep(String instanceName) {
         this.instanceName = instanceName;
-    }
-
-    public String getHostName() {
-        return hostName;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getUser() {
-        return userName;
-    }
-
-    public String getPassword() {
-        return password;
     }
 
     public String getInstanceName() {
@@ -85,13 +57,20 @@ public class StopFlightRecordingBuildStep extends Builder {
         try {
             listener.getLogger().println("Stopping flight recording");
 
+            // find flight recording
+            String flightRecordingCanonicalName = FlightRecordingRepository.getCanonicalName(instanceName);
+            JvmConfigItem jvmConfigItem = FlightRecordingRepository.getJvmConfigItem(instanceName);
+
+            String hostName = jvmConfigItem.getHostName();
+            int port = jvmConfigItem.getPort();
+            String userName = jvmConfigItem.getUserName();
+            String password = jvmConfigItem.getPassword();
+
+            // connect
             JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
             JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
 
-            // find flight recording
-            String flightRecordingCanonicalName = FlightRecordingRepository.get(instanceName);
-
-            // stop flight it
+            // stop it
             jRockitDiagnosticService.stopFlightRecording(flightRecordingCanonicalName);
 
             log.log(Level.FINE, "Flight recording stopped");
