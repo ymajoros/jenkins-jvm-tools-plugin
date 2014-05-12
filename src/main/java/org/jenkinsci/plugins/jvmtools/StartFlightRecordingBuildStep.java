@@ -79,8 +79,6 @@ public class StartFlightRecordingBuildStep extends Builder {
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
         try {
-            listener.getLogger().println("Starting flight recording");
-
             JvmConfigItem jvmConfigItem = getDescriptor().getBuildStepConfigByName(jvmConfigName);
             if (jvmConfigItem == null) {
                 listener.getLogger().println(Messages.config_does_not_exist(jvmConfigName));
@@ -91,6 +89,9 @@ public class StartFlightRecordingBuildStep extends Builder {
             int port = jvmConfigItem.getPort();
             String userName = jvmConfigItem.getUserName();
             String password = jvmConfigItem.getPassword();
+
+            String startingMessage = MessageFormat.format("Starting flight recording at {0}:{1,number,0}", hostName, port);
+            listener.getLogger().println(startingMessage);
 
             JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
             JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
@@ -105,8 +106,8 @@ public class StartFlightRecordingBuildStep extends Builder {
             // start it
             jRockitDiagnosticService.startFlightRecording(flightRecordingCanonicalName);
 
-            String message = MessageFormat.format("Flight recording started {0}", flightRecordingCanonicalName);
-            listener.getLogger().println(message);
+            String startedMessage = MessageFormat.format("Flight recording started with remote canonical name {0}", flightRecordingCanonicalName);
+            listener.getLogger().println(startedMessage);
 
             return true;
         } catch (IOException | JMException exception) {
