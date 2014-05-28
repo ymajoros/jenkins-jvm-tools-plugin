@@ -1,21 +1,18 @@
-package org.jenkinsci.plugins.jvmtools;
+package org.jenkinsci.plugins.jvmtools.build;
 
+import org.jenkinsci.plugins.jvmtools.build.descriptor.StopFlightRecordingBuildStepDescriptor;
 import org.jenkinsci.plugins.jvmtools.callable.StopFlightRecoringCallable;
-import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.remoting.Callable;
-import hudson.tasks.BuildStepDescriptor;
+import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
-import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.logging.Logger;
 
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
 
 /**
  * @author Yannick Majoros
@@ -60,7 +57,8 @@ public class StopFlightRecordingBuildStep extends Builder {
         Callable<Void, Exception> callable = new StopFlightRecoringCallable(instanceName, listener);
 
         try {
-            launcher.getChannel().call(callable);
+            VirtualChannel virtualChannel = launcher.getChannel();
+            virtualChannel.call(callable);
         } catch (IOException ioException) {
             throw new RuntimeException(ioException);
         } catch (InterruptedException interruptedException) {
@@ -79,49 +77,5 @@ public class StopFlightRecordingBuildStep extends Builder {
         return (StopFlightRecordingBuildStepDescriptor) super.getDescriptor();
     }
 
-    /**
-     * Descriptor for {@link StartFlightRecordingBuildStep}.
-     */
-    @Extension
-    public static final class StopFlightRecordingBuildStepDescriptor extends BuildStepDescriptor<Builder> {
-
-        /**
-         * Enables this builder for all kinds of projects.
-         *
-         * @param aClass
-         * @return
-         */
-        @Override
-        public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-            return true;
-        }
-
-        /**
-         * This human readable name is used in the configuration screen.
-         *
-         * @return
-         */
-        @Override
-        public String getDisplayName() {
-            return Messages.stop_fr_buildstep_name();
-        }
-
-        /**
-         * validate that an existing config was chosen
-         *
-         * @param hostname
-         * @param port
-         * @param user
-         * @param password
-         * @param maxDuration
-         * @param instanceName
-         * @return
-         */
-        public FormValidation doCheckBuildStepId(@QueryParameter String hostname, @QueryParameter int port, @QueryParameter String user, @QueryParameter String password, @QueryParameter long maxDuration, @QueryParameter String instanceName) {
-            return FormValidation.ok();
-//                return FormValidation.error("you must select a valid script");
-        }
-
-    }
 
 }
