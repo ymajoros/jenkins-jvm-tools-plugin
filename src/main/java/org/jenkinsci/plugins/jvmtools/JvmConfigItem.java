@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.jvmtools;
 
+import java.io.Serializable;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 
@@ -7,7 +8,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Represents a setup config for one set of labels. It may have its own prepare
  * script, files to copy and command line.
  */
-public class JvmConfigItem {
+public class JvmConfigItem implements Serializable {
 
     private final String name;
     private final String hostName;

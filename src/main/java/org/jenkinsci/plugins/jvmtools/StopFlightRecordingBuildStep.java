@@ -1,18 +1,18 @@
 package org.jenkinsci.plugins.jvmtools;
 
+import org.jenkinsci.plugins.jvmtools.callable.StopFlightRecoringCallable;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.remoting.Callable;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import java.io.IOException;
-import java.util.logging.Level;
+import java.io.PrintStream;
 import java.util.logging.Logger;
-import javax.management.JMException;
-import javax.management.remote.JMXConnector;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -54,46 +54,36 @@ public class StopFlightRecordingBuildStep extends Builder {
      */
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
+        PrintStream logger = listener.getLogger();
+        logger.println("Stopping flight recording");
+
+        Callable<Void, Exception> callable = new StopFlightRecoringCallable(instanceName, listener);
+
         try {
-            listener.getLogger().println("Stopping flight recording");
-
-            // find flight recording
-            String flightRecordingCanonicalName = FlightRecordingRepository.getCanonicalName(instanceName);
-            JvmConfigItem jvmConfigItem = FlightRecordingRepository.getJvmConfigItem(instanceName);
-
-            String hostName = jvmConfigItem.getHostName();
-            int port = jvmConfigItem.getPort();
-            String userName = jvmConfigItem.getUserName();
-            String password = jvmConfigItem.getPassword();
-
-            // connect
-            JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
-            JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
-
-            // stop it
-            jRockitDiagnosticService.stopFlightRecording(flightRecordingCanonicalName);
-
-            log.log(Level.FINE, "Flight recording stopped");
-
-            return true;
-        } catch (IOException | JMException exception) {
+            launcher.getChannel().call(callable);
+        } catch (IOException ioException) {
+            throw new RuntimeException(ioException);
+        } catch (InterruptedException interruptedException) {
+            logger.println("Interrupted.");
+            return false;
+        } catch (Exception exception) {
             throw new RuntimeException(exception);
         }
+
+        return true;
     }
 
     // Overridden for better type safety.
     @Override
-    public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) super.getDescriptor();
+    public StopFlightRecordingBuildStepDescriptor getDescriptor() {
+        return (StopFlightRecordingBuildStepDescriptor) super.getDescriptor();
     }
 
     /**
      * Descriptor for {@link StartFlightRecordingBuildStep}.
      */
-    @Extension(ordinal = 50)
-    public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
-        final Logger logger = Logger.getLogger(StopFlightRecordingBuildStep.class.getName());
+    @Extension
+    public static final class StopFlightRecordingBuildStepDescriptor extends BuildStepDescriptor<Builder> {
 
         /**
          * Enables this builder for all kinds of projects.
@@ -133,4 +123,5 @@ public class StopFlightRecordingBuildStep extends Builder {
         }
 
     }
+
 }

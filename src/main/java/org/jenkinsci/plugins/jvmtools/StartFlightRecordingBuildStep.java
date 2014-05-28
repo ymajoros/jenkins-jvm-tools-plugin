@@ -1,23 +1,22 @@
 package org.jenkinsci.plugins.jvmtools;
 
+import org.jenkinsci.plugins.jvmtools.callable.StartFlightRecordingCallable;
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import java.io.IOException;
-import java.text.MessageFormat;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.management.JMException;
-import javax.management.remote.JMXConnector;
-
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -29,8 +28,6 @@ import org.kohsuke.stapler.QueryParameter;
  * @author Yannick Majoros
  */
 public class StartFlightRecordingBuildStep extends Builder {
-
-    private static final Logger log = Logger.getLogger(StartFlightRecordingBuildStep.class.getName());
 
     private final String jvmConfigName;
     private final Long maxDuration;
@@ -77,57 +74,40 @@ public class StartFlightRecordingBuildStep extends Builder {
      * @return
      */
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-        try {
-            JvmConfigItem jvmConfigItem = getDescriptor().getBuildStepConfigByName(jvmConfigName);
-            if (jvmConfigItem == null) {
-                listener.getLogger().println(Messages.config_does_not_exist(jvmConfigName));
-                return false;
-            }
-
-            String hostName = jvmConfigItem.getHostName();
-            int port = jvmConfigItem.getPort();
-            String userName = jvmConfigItem.getUserName();
-            String password = jvmConfigItem.getPassword();
-
-            String startingMessage = MessageFormat.format("Starting flight recording at {0}:{1,number,0}", hostName, port);
-            listener.getLogger().println(startingMessage);
-
-            JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
-            JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
-
-            // create flight recording
-            String flightRecordingCanonicalName = jRockitDiagnosticService.createFlightRecording();
-
-            // register (for use in stop / dump etc.)
-            FlightRecordingRepository.saveCanonicalName(instanceName, flightRecordingCanonicalName);
-            FlightRecordingRepository.saveJvmConfigItem(instanceName, jvmConfigItem);
-
-            // start it
-            jRockitDiagnosticService.startFlightRecording(flightRecordingCanonicalName);
-
-            String startedMessage = MessageFormat.format("Flight recording started with remote canonical name {0}", flightRecordingCanonicalName);
-            listener.getLogger().println(startedMessage);
-
-            return true;
-        } catch (IOException | JMException exception) {
-            throw new RuntimeException(exception);
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, final BuildListener listener) {
+        PrintStream logger = listener.getLogger();
+        StartFlightRecordingBuildStepDescriptor descriptor = getDescriptor();
+        JvmConfigItem jvmConfigItem = descriptor.getBuildStepConfigByName(jvmConfigName);
+        if (jvmConfigItem == null) {
+            logger.println(Messages.config_does_not_exist(jvmConfigName));
+            return false;
         }
+
+        StartFlightRecordingCallable startFlightRecordingCallable = new StartFlightRecordingCallable(instanceName, jvmConfigItem, listener);
+
+        try {
+            VirtualChannel virtualChannel = launcher.getChannel();
+            virtualChannel.call(startFlightRecordingCallable);
+        } catch (IOException ioException) {
+            throw new RuntimeException(ioException);
+        } catch (InterruptedException interruptedException) {
+            logger.println("Interrupted.");
+            return false;
+        }
+
+        return true;
     }
 
-    // Overridden for better type safety.
     @Override
-    public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) super.getDescriptor();
+    public StartFlightRecordingBuildStepDescriptor getDescriptor() {
+        return (StartFlightRecordingBuildStepDescriptor) super.getDescriptor();
     }
 
     /**
      * Descriptor for {@link StartFlightRecordingBuildStep}.
      */
-    @Extension(ordinal = 50)
-    public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
-        final Logger logger = Logger.getLogger(StartFlightRecordingBuildStep.class.getName());
+    @Extension
+    public static final class StartFlightRecordingBuildStepDescriptor extends BuildStepDescriptor<Builder> {
 
         /**
          * Enables this builder for all kinds of projects.
@@ -198,4 +178,5 @@ public class StartFlightRecordingBuildStep extends Builder {
             return null;
         }
     }
+
 }

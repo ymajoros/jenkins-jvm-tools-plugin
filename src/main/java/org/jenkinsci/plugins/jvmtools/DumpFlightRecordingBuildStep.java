@@ -1,22 +1,18 @@
 package org.jenkinsci.plugins.jvmtools;
 
+import org.jenkinsci.plugins.jvmtools.callable.DumpFlightRecordingCallable;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.remoting.Callable;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.MessageFormat;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.management.JMException;
-import javax.management.remote.JMXConnector;
+import java.io.PrintStream;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -25,8 +21,6 @@ import org.kohsuke.stapler.QueryParameter;
  * @author Yannick Majoros
  */
 public class DumpFlightRecordingBuildStep extends Builder {
-
-    private static final Logger log = Logger.getLogger(DumpFlightRecordingBuildStep.class.getName());
 
     private final String instanceName;
     private final String fileName;
@@ -80,66 +74,39 @@ public class DumpFlightRecordingBuildStep extends Builder {
      * @return
      */
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
+    public boolean perform(final AbstractBuild<?, ?> build, Launcher launcher, final BuildListener listener) {
+        final PrintStream logger = listener.getLogger();
+        logger.println("Dumping flight recording");
+
+        FilePath workingDir = build.getWorkspace();
+
+        Callable<Void, Exception> callable = new DumpFlightRecordingCallable(instanceName, workingDir, listener, stop, close, fileName);
+
         try {
-            listener.getLogger().println("Dumping flight recording");
-
-            // find flight recording
-            String flightRecordingCanonicalName = FlightRecordingRepository.getCanonicalName(instanceName);
-            JvmConfigItem jvmConfigItem = FlightRecordingRepository.getJvmConfigItem(instanceName);
-
-            String hostName = jvmConfigItem.getHostName();
-            int port = jvmConfigItem.getPort();
-            String userName = jvmConfigItem.getUserName();
-            String password = jvmConfigItem.getPassword();
-
-            // connect
-            JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
-            JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
-
-            // stop it
-            if (stop) {
-                jRockitDiagnosticService.stopFlightRecording(flightRecordingCanonicalName);
-                log.log(Level.FINE, "Flight recording stopped");
-            }
-
-            Path path = Paths.get(fileName);
-            if (!path.isAbsolute()) {
-                FilePath workingDir = build.getWorkspace();
-                String workspaceDirName = workingDir.getRemote();
-                path = Paths.get(workspaceDirName, fileName);
-            }
-            Path absolutePath = path.toAbsolutePath();
-            jRockitDiagnosticService.dumpFlightRecording(flightRecordingCanonicalName, absolutePath);
-
-            String message = MessageFormat.format("Flight recording dumped to {0}", absolutePath);
-            listener.getLogger().println(message);
-
-            // close it
-            if (close) {
-                jRockitDiagnosticService.closeFlightRecording(flightRecordingCanonicalName);
-                log.log(Level.FINE, "Flight recording closed");
-            }
-
-            return true;
-        } catch (IOException | JMException exception) {
-            throw new RuntimeException(exception);
+            launcher.getChannel().call(callable);
+        } catch (IOException ioException) {
+            throw new RuntimeException(ioException);
+        } catch (InterruptedException ex) {
+            logger.println("Interrupted.");
+            return false;
+        } catch (Exception ioException) {
+            throw new RuntimeException(ioException);
         }
+
+        return true;
     }
 
     // Overridden for better type safety.
     @Override
-    public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) super.getDescriptor();
+    public DumpFlightRecordingBuildStepDescriptor getDescriptor() {
+        return (DumpFlightRecordingBuildStepDescriptor) super.getDescriptor();
     }
 
     /**
      * Descriptor for {@link StartFlightRecordingBuildStep}.
      */
-    @Extension(ordinal = 50)
-    public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
-        final Logger logger = Logger.getLogger(DumpFlightRecordingBuildStep.class.getName());
+    @Extension
+    public static final class DumpFlightRecordingBuildStepDescriptor extends BuildStepDescriptor<Builder> {
 
         /**
          * Enables this builder for all kinds of projects.
@@ -182,4 +149,5 @@ public class DumpFlightRecordingBuildStep extends Builder {
         }
 
     }
+
 }
