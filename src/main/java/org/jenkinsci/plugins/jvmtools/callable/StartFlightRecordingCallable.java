@@ -5,8 +5,10 @@ import hudson.remoting.Callable;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import javax.management.JMException;
 import javax.management.remote.JMXConnector;
+import org.jenkinsci.plugins.jvmtools.FlightRecording;
 import org.jenkinsci.plugins.jvmtools.FlightRecordingRepository;
 import org.jenkinsci.plugins.jvmtools.JRockitDiagnosticService;
 import org.jenkinsci.plugins.jvmtools.JvmConfigItem;
@@ -18,13 +20,12 @@ import org.jenkinsci.plugins.jvmtools.SimpleJMXConnectorFactory;
  */
 public class StartFlightRecordingCallable implements Callable<Void, RuntimeException> {
 
-    private final String instanceName;
-    private final JvmConfigItem jvmConfigItem;
+    @Nonnull
+    private final FlightRecording flightRecording;
     private final BuildListener listener;
 
-    public StartFlightRecordingCallable(String instanceName, JvmConfigItem jvmConfigItem, BuildListener listener) {
-        this.instanceName = instanceName;
-        this.jvmConfigItem = jvmConfigItem;
+    public StartFlightRecordingCallable(@Nonnull FlightRecording flightRecording, @Nonnull BuildListener listener) {
+        this.flightRecording = flightRecording;
         this.listener = listener;
     }
 
@@ -32,6 +33,8 @@ public class StartFlightRecordingCallable implements Callable<Void, RuntimeExcep
     public Void call() {
         PrintStream logger = listener.getLogger();
         try {
+            JvmConfigItem jvmConfigItem = flightRecording.getJvmConfigItem();
+
             String hostName = jvmConfigItem.getHostName();
             int port = jvmConfigItem.getPort();
             String userName = jvmConfigItem.getUserName();
@@ -40,15 +43,19 @@ public class StartFlightRecordingCallable implements Callable<Void, RuntimeExcep
             logger.println(startingMessage);
             JMXConnector jmxConnector = SimpleJMXConnectorFactory.createJMXConnector(hostName, port, userName, password);
             JRockitDiagnosticService jRockitDiagnosticService = new JRockitDiagnosticService(jmxConnector);
+
             // create flight recording
-            String flightRecordingCanonicalName = jRockitDiagnosticService.createFlightRecording();
+            String canonicalName = jRockitDiagnosticService.createFlightRecording();
+
             // register (for use in stop / dump etc.)
-            FlightRecordingRepository.saveCanonicalName(instanceName, flightRecordingCanonicalName);
-            FlightRecordingRepository.saveJvmConfigItem(instanceName, jvmConfigItem);
+            flightRecording.setCanonicalName(canonicalName);
+            FlightRecordingRepository.add(flightRecording);
+
             // start it
-            jRockitDiagnosticService.startFlightRecording(flightRecordingCanonicalName);
-            String startedMessage = MessageFormat.format("Flight recording started with remote canonical name {0}", flightRecordingCanonicalName);
+            jRockitDiagnosticService.startFlightRecording(canonicalName);
+            String startedMessage = MessageFormat.format("Flight recording started with remote canonical name {0}", canonicalName);
             logger.println(startedMessage);
+
             return null;
         } catch (IOException | JMException exception) {
             throw new RuntimeException(exception);

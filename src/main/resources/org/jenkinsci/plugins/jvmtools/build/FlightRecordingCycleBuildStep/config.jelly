@@ -1,7 +1,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
     <st:adjunct assumes="org.kohsuke.stapler.framework.prototype.prototype" includes="org.kohsuke.stapler.bind"/>
-    xxx
+    
     <j:choose>
         <j:when test="${empty(descriptor.availableJvmConfigItems)}">
             <f:entry title="">
@@ -34,8 +34,8 @@
         <f:textbox field="maxDuration" />
     </f:entry>
     
-    <f:entry title="${%Instance Name}" help="The instance name that will be used to refer to this flight recording">
-        <f:textbox field="instanceName" />
+    <f:entry title="${%File Name}" help="The target file name">
+        <f:textbox field="fileName" />
     </f:entry>
  
 </j:jelly>

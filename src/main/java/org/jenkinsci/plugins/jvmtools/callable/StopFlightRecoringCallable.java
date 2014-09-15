@@ -1,9 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package org.jenkinsci.plugins.jvmtools.callable;
 
 import hudson.model.BuildListener;
@@ -12,6 +6,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import javax.management.JMException;
 import javax.management.remote.JMXConnector;
+import org.jenkinsci.plugins.jvmtools.FlightRecording;
 import org.jenkinsci.plugins.jvmtools.FlightRecordingRepository;
 import org.jenkinsci.plugins.jvmtools.JRockitDiagnosticService;
 import org.jenkinsci.plugins.jvmtools.JvmConfigItem;
@@ -22,6 +17,7 @@ import org.jenkinsci.plugins.jvmtools.SimpleJMXConnectorFactory;
  * @author ym
  */
 public class StopFlightRecoringCallable implements Callable<Void, Exception> {
+
     private final String instanceName;
     private final BuildListener listener;
 
@@ -34,8 +30,9 @@ public class StopFlightRecoringCallable implements Callable<Void, Exception> {
     public Void call() throws JMException, IOException {
         PrintStream logger = listener.getLogger();
         // find flight recording
-        String flightRecordingCanonicalName = FlightRecordingRepository.getCanonicalName(instanceName);
-        JvmConfigItem jvmConfigItem = FlightRecordingRepository.getJvmConfigItem(instanceName);
+        FlightRecording flightRecording = FlightRecordingRepository.findFlightRecording(instanceName);
+        String flightRecordingCanonicalName = flightRecording.getCanonicalName();
+        JvmConfigItem jvmConfigItem = flightRecording.getJvmConfigItem();
         String hostName = jvmConfigItem.getHostName();
         int port = jvmConfigItem.getPort();
         String userName = jvmConfigItem.getUserName();
@@ -48,5 +45,5 @@ public class StopFlightRecoringCallable implements Callable<Void, Exception> {
         logger.println("Flight recording stopped");
         return null;
     }
-    
+
 }

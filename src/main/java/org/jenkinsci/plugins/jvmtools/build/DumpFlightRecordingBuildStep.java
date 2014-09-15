@@ -11,6 +11,9 @@ import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
 import java.io.IOException;
 import java.io.PrintStream;
+import org.jenkinsci.plugins.jvmtools.FlightRecording;
+import org.jenkinsci.plugins.jvmtools.FlightRecordingRepository;
+import org.jenkinsci.plugins.jvmtools.JvmConfigItem;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -77,7 +80,9 @@ public class DumpFlightRecordingBuildStep extends Builder {
 
         FilePath workingDir = build.getWorkspace();
 
-        Callable<Void, Exception> callable = new DumpFlightRecordingCallable(instanceName, workingDir, listener, stop, close, fileName);
+        FlightRecording flightRecording = FlightRecordingRepository.findFlightRecording(instanceName);
+        flightRecording.setFileName(fileName);
+        Callable<Void, Exception> callable = new DumpFlightRecordingCallable(flightRecording, workingDir, stop, close, logger);
 
         try {
             VirtualChannel virtualChannel = launcher.getChannel();
@@ -99,6 +104,5 @@ public class DumpFlightRecordingBuildStep extends Builder {
     public DumpFlightRecordingBuildStepDescriptor getDescriptor() {
         return (DumpFlightRecordingBuildStepDescriptor) super.getDescriptor();
     }
-
 
 }

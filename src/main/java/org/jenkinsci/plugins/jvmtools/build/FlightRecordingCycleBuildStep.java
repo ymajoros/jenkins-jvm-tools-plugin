@@ -1,58 +1,61 @@
 package org.jenkinsci.plugins.jvmtools.build;
 
-import org.jenkinsci.plugins.jvmtools.build.descriptor.StartFlightRecordingBuildStepDescriptor;
-import org.jenkinsci.plugins.jvmtools.callable.StartFlightRecordingCallable;
+import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
+import hudson.model.Environment;
+import hudson.model.Run;
+import hudson.model.listeners.RunListener;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
+import hudson.tasks.Recorder;
 import java.io.IOException;
 import java.io.PrintStream;
 import org.jenkinsci.plugins.jvmtools.FlightRecording;
 import org.jenkinsci.plugins.jvmtools.JvmConfigItem;
 import org.jenkinsci.plugins.jvmtools.Messages;
+import org.jenkinsci.plugins.jvmtools.build.descriptor.FlightRecordingCycleBuildStepDescriptor;
+import org.jenkinsci.plugins.jvmtools.callable.DumpFlightRecordingCallable;
+import org.jenkinsci.plugins.jvmtools.callable.StartFlightRecordingCallable;
 import org.jenkinsci.plugins.jvmtools.util.JvmConfigUtil;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * A project that uses this builder can choose a build step from a list of
- * predefined config files that are uses as command line scripts. The hash-bang
- * sequence at the beginning of each file is used to determine the interpreter.
- *
  * @author Yannick Majoros
  */
-public class StartFlightRecordingBuildStep extends Builder {
+public class FlightRecordingCycleBuildStep extends Builder {
 
     private final String jvmConfigName;
     private final Long maxDuration;
-    private final String instanceName;
+    private final String fileName;
 
     /**
      * The constructor used at form submission
      *
      * @param jvmConfigName
      * @param maxDuration
-     * @param instanceName
+     * @param fileName
      */
     @DataBoundConstructor
-    public StartFlightRecordingBuildStep(String jvmConfigName, Long maxDuration, String instanceName) {
+    public FlightRecordingCycleBuildStep(String jvmConfigName, Long maxDuration, String fileName) {
         this.jvmConfigName = jvmConfigName;
         this.maxDuration = maxDuration;
-        this.instanceName = instanceName;
+        this.fileName = fileName;
     }
 
     //<editor-fold defaultstate="collapsed" desc="get/set...">
+    public String getFileName() {
+        return fileName;
+    }
+
     public String getJvmConfigName() {
         return jvmConfigName;
     }
 
     public Long getMaxDuration() {
         return maxDuration;
-    }
-
-    public String getInstanceName() {
-        return instanceName;
     }
     //</editor-fold>
 
@@ -69,15 +72,16 @@ public class StartFlightRecordingBuildStep extends Builder {
      * @return
      */
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, final BuildListener listener) {
+    public boolean perform(final AbstractBuild<?, ?> build, Launcher launcher, final BuildListener listener) {
         PrintStream logger = listener.getLogger();
+
         JvmConfigItem jvmConfigItem = JvmConfigUtil.getBuildStepConfigByName(jvmConfigName);
         if (jvmConfigItem == null) {
             logger.println(Messages.config_does_not_exist(jvmConfigName));
             return false;
         }
 
-        FlightRecording flightRecording = new FlightRecording(instanceName, jvmConfigItem);
+        FlightRecording flightRecording = new FlightRecording(null, jvmConfigItem, fileName);
         StartFlightRecordingCallable startFlightRecordingCallable = new StartFlightRecordingCallable(flightRecording, listener);
 
         try {
@@ -93,9 +97,10 @@ public class StartFlightRecordingBuildStep extends Builder {
         return true;
     }
 
+    // Overridden for better type safety.
     @Override
-    public StartFlightRecordingBuildStepDescriptor getDescriptor() {
-        return (StartFlightRecordingBuildStepDescriptor) super.getDescriptor();
+    public FlightRecordingCycleBuildStepDescriptor getDescriptor() {
+        return (FlightRecordingCycleBuildStepDescriptor) super.getDescriptor();
     }
 
 }
